@@ -1,0 +1,65 @@
+{
+  "name": "Global Error Handler — Telegram Alert Gateway",
+  "nodes": [
+    {
+      "id": "e0000001-0000-4000-8000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "id": "e0000002-0000-4000-8000-000000000002",
+      "name": "Przygotuj Wiadomość Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "jsCode": "const item = $input.first()?.json || {};\nconst wf = item.workflow || {};\nconst exec = item.execution || {};\nconst err = exec.error || {};\n\nconst now = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });\n\nconst msg = `🚨 *NORA MEDIA: Błąd w Automatyzacji n8n!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n• *Workflow:* ${wf.name || 'Nieznany'}\n• *ID:* \\`${wf.id || '-'}\\`\n• *Execution ID:* \\`${exec.id || '-'}\\`\n• *Czas:* ${now}\n• *Szczegóły błędu:* \\`${(err.message || 'Nieznany błąd wykonania').slice(0, 250)}\\`\n\n🔗 [Otwórz egzekucję w n8n](http://localhost:5678/execution/${exec.id || ''})`;\n\nreturn {\n  json: {\n    chat_id: '{{TELEGRAM_CHAT_ID}}',\n    text: msg,\n    parse_mode: 'Markdown',\n    disable_web_page_preview: true\n  }\n};"
+      }
+    },
+    {
+      "id": "e0000003-0000-4000-8000-000000000003",
+      "name": "Wyślij Alert do Telegrama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Przygotuj Wiadomość Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Przygotuj Wiadomość Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wyślij Alert do Telegrama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
+
